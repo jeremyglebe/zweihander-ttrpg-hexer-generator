@@ -1,5 +1,6 @@
 // Setting difficulty penalty to survive the trials...
 const TRIAL_DIFFICULTY = -30;
+const AVERAGE_STATS = 290.5;
 
 // Use name generator library to create generators
 const HexerNameGenerator = NameGen.compile("sD");
@@ -76,6 +77,17 @@ function GenerateHexer() {
     let status;
     if (test.success) {
         status = "Survived";
+        // Cheat to avoid low stats :P Uncomment call to use this.
+        // But don't actually use this. It won't be enabled on the website.
+        const cheat = () => {
+            const MIN_SCORE = 42; // This breaks the webpage around 46 lol, statistics are fun
+            for (let score of Object.values(stats)) {
+                if (score < MIN_SCORE) {
+                    status = "Weak, Supporting Cast Energy";
+                }
+            }
+        }
+        // cheat();
     }
     else if (test.critical) {
         status = "Deceased";
@@ -115,10 +127,56 @@ function GenerateHexer() {
     document.body.appendChild(div);
 
     // Return the result of the test
-    return status;
+    return { name, stats, test, status };
 }
 
-let result = "";
-while (result != "Survived") {
-    result = GenerateHexer();
+let total_candidates = 0;
+let total_stat_points = 0;
+let dead = 0;
+let insane = 0;
+let hexer = { status: "" };
+while (hexer.status != "Survived") {
+    hexer = GenerateHexer();
+    total_candidates++;
+    total_stat_points += Object.values(hexer.stats).reduce((partialSum, a) => partialSum + a, 0);
+    if (hexer.status == "Deceased") {
+        dead++;
+    }
+    else if (hexer.status == "Insane") {
+        insane++;
+    }
 }
+
+// Let's generate some fun stats
+// First, how does the winning hexer compare to all the other candidates?
+const candidates_avg = total_stat_points / total_candidates;
+const winner = Object.values(hexer.stats).reduce((partialSum, a) => partialSum + a, 0);
+const candidates_lower = winner < candidates_avg;
+const candidates_perc_diff = (Math.abs(winner - candidates_avg) / ((winner + candidates_avg) / 2)) * 100;
+// Lets compare it to Zweihander characters in general
+const zwei_perc_diff = (Math.abs(winner - AVERAGE_STATS) / ((winner + AVERAGE_STATS) / 2)) * 100;
+const zwei_lower = winner < AVERAGE_STATS;
+// Determine what percentage of candidates died, went insane, etc.
+// Display the stats
+let html = `
+<h2>Mildly Interesting Statistics</h2>
+<ul>
+    <li>${insane} out of ${total_candidates} (${(insane/total_candidates*100).toFixed(2)}%) were driven insane by the mutagenic elixir. Their madness and deformities will prevent them from ever becoming a Hexer.</li>
+    <li>${dead} out of ${total_candidates} (${(dead/total_candidates*100).toFixed(2)}%) died from the toxins in the elixir.</li>
+    <li>${hexer.name}'s stats are <b>${zwei_perc_diff.toFixed(2)}% ${zwei_lower ? "lower" : "higher"}</b> than the average Zweihander character.</li>
+    <li>${hexer.name}'s stats are <b>${candidates_perc_diff.toFixed(2)}% ${candidates_lower ? "lower" : "higher"}</b> than the average of the candidates that failed.</li>
+</ul>
+`
+let div = document.createElement('div');
+div.innerHTML = html;
+document.body.appendChild(div);
+
+// Quick experiment to determine actual average stat points. This will be used to hardcode the value, 
+// then this code will be commented out and forgotten.
+// const its = 10000000;
+// let total = 0;
+// for(let i = 0; i < its; i++){
+//     let stats = RollStatBlock();
+//     total += Object.values(stats).reduce((partialSum, a) => partialSum + a, 0);
+// }
+// console.log("Average Stats", total / its);
