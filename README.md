@@ -1,4 +1,4 @@
-# Zweihander Hexer Stats Generator
+# Zweihander Hexer Character Stats Generator
 
 You probably don't care about this project. It is only on GitHub for the free site hosting so that my friends can use it.
 
